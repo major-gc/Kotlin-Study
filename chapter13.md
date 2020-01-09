@@ -67,85 +67,113 @@ fun main() {
 
 생성자 매개변수에 var 또는 val 을 붙일 경우, 자동으로 속성이 정의된다.  
 만약, name 속성과 같이 커스텀한 게터, 세터를 사용해야될 경우에는 위 코드 처럼 임시변수를 사용해야한다.  
-(생성자 매개변수 수정이 불가능함.)  
-(생성자 매개변수로는 커스텀 게터, 세터 생성 시 컴파일 오류남.)
+(생성자 매개변수는 수정이 불가능하고 커스텀 게터, 세터 생성 시 컴파일 오류가 난다.)  
 
 
 ## 2. 보조 생성자
 
-kotlin의 내장 타입은 java의 타입과 비슷하다.  
-\(kotlin은 java와 거의 같으므로 책에 나온 표는 책 참고.\)
+kotlin 에는 두 종류의 생성자가 있다.  
+기본 생성자와 보조 생성자이다. (기본 생성자는 위에서 살펴봤으므로 패스...)  
+보조 생성자는 클래스의 헤더가 아닌 몸체에 정의하며, 매개변수를 받아서 기본 생성자를 호출하거나 또 다른 보조 생성자를 호출한다.
+ 
 
-예시코드. \(초기화 방법\)
+예시코드1. \(보조 생성자\)
 
 ```kotlin
-fun main(args: Array<String>) {
-    var string = "string"
-    var char = 'c'
-    var boolean = true
-    var int = 5
-    var double = 5.5
-    var float = 5.5f
+class Player3(_name: String,
+              var healthPoints: Int,
+              val isBlessed: Boolean,
+              private val isImmotal: Boolean) {
+              
+    var name = _name
+        get() = field.capitalize()
+        private set(value) {
+            field = value.trim()
+        }
 
-    var list0 = listOf(1..5)
-    var list1 = arrayListOf(1..5)
-    var list2 = List(5, {i-> i})
-    var list3 = (1..5).toList()
-
-    var set0 = setOf(1, 1, 3, 2)
-    var set1 = hashSetOf(1, 1, 3, 2)
-    var set2 = linkedSetOf(1, 1, 3, 2)
-    var set3 = sortedSetOf(1, 1, 3, 2)
-    var set4 = (1..5).toSet()
-    var set5 = (1..5).toHashSet()
-
-    var map0 = mapOf("one" to 1, "two" to 2)
-    var map1 = mapOf(Pair("one",1), Pair("two",2))
-    var map2 = hashMapOf(Pair("one",1), Pair("two",2))
-    var map3 = linkedMapOf(Pair("one",1), Pair("two",2))
-    var map4 = sortedMapOf(Pair("one",1), Pair("two",2))
+    constructor(name: String) : this (name, healthPoints =100, isBlessed = true, isImmotal = false)
+    
 }
 ```
 
-## 3. 읽기 전용 변수
+위 예시코드는 지명인자를 사용하였으며 (지명인자 = 매개변수 명을 뜻하는 듯.)  
+this 키워드는 기본 생성자를 뜻한다.  
+예상되다시피 위 보조 생성자는 name 값만 인수로 넘겨서 Player의 인스턴스를 생성할 수 있다.  
 
-kotlin에서는 한번 변수가 저장되면 변경될 수 없도록 읽기 전용 변수를 지원한다. 읽기 전용 변수로 선언한 변수를 변경하면 컴파일 오류가 발생한다.
+ex. val player = Player3("Madrigal") 
 
-기본 변경 가능한 변수 키워드는 var \(variable\)  
-변경 불가능한 읽기 전용 변수 키워드는 val \(value\)
+예시코드2. \(보조 생성자에 속성 초기화 코드 추가\)
+
+```kotlin
+class Player3(_name: String,
+              var healthPoints: Int,
+              val isBlessed: Boolean,
+              private val isImmotal: Boolean) {
+              
+    var name = _name
+        get() = field.capitalize()
+        private set(value) {
+            field = value.trim()
+        }
+
+    constructor(name: String) : this (name, healthPoints =100, isBlessed = true, isImmotal = false) {
+        if (name.toLowerCase() == "kar") healthPoints = 40
+    }
+    
+}
+```
+
+> 참고  
+보조 생성자에서는 클래스 속성 정의가 불가능하다.  
+클래스 속성은 기본 생성자나 클래스 몸체에 정의되어야 한다.
+  
+
+
+## 3. 기본 인자
+
+기본 생성자에 기본 인자를 줄 수 있다.  
+기본 인자를 줄 경우 보조 생성자에서는 해당 인자가 없어도 된다.
 
 예시코드.
 
 ```kotlin
-fun main(args: Array<String>) {
-    var name1 = "name1"
-    val name2 = "name2"
+class Player3(_name: String,
+              var healthPoints: Int = 100,
+              val isBlessed: Boolean,
+              private val isImmotal: Boolean) {
+    var name = _name
+        get() = field.capitalize()
+        private set(value) {
+            field = value.trim()
+        }
 
-    name2 = "name change" // 컴파일 오류 발생
-
-}
-```
-
-> 참고로. intellij에서는 var로 선언한 변수가 변경되지 않으면 val로 바꾸라는 제안을 한다. 책에서는 intellij의 제안을 따르는 것이 좋다고 함.
-
-범위 표현 예시코드\(with. 조건 표현식\)
-
-```kotlin
-fun main(args: Array<String>) {
-    val healthPoints = 80
-    val healthStatus = if(healthPoints in 90..99) {
-        "최상의 상태"
-    } else if (healthPoints in 80..89) {
-        "약간의 찰과상"
+    constructor(name: String) : this (name, isBlessed = true, isImmotal = false) {
+        if (name.toLowerCase() == "kar") healthPoints = 40
     }
-
-    println(healthStatus)
 }
 ```
 
-## 4. 타입 추론
+## 4. 지명 인자
+
+지명 인자는 함수를 호출하기위한 인자에 이름을 지정하는 것이다.
+
+예시코드
+```kotlin
+fun main() {
+    // 지명인자 사용
+    val player2 = Player3("Madrigal", healthPoints =100, isBlessed = true, isImmotal = false)
+    player2.castFireball()
+    printPlayerStatus2(player2)
+}
+```
+
+지명인자를 사용할 경우 실제 매개변수의 위치가 달라도 자동으로 매핑해주고  
+어떤 매개변수에 전달되는 값인지 알아보기 쉽다.   
+(특히 함수의 인자가 많을 경우 유용함.)
+
 
 2장 처음 변수를 선언하는 방법으로 다음과 같이 설명했다.
+
 
 var experiencePoints : Int = 5
 
