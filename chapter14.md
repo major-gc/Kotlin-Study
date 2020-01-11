@@ -115,7 +115,8 @@ fun printName(any: Any) {
         (any as Car)
         
         //이런식으로 작성하면 name 이 Car이면 true 아니면 false로 결과 반
-        (any as Car) == "Car"
+        (any as Car).name == "Car"
+        
     }
     println($namePrint)
 }
