@@ -7,4 +7,5 @@
 * [6. null 안전과 예외](chapter6.md)
 * [7. 문자열](chapter7.md)
 * [9. 표준 함수](chapter9.md)
-* [13. 초기화](chapter13.md)
+* [14. 상속](chapter14.md)
+
