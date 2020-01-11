@@ -69,6 +69,7 @@ fun main() {
 만약, name 속성과 같이 커스텀한 게터, 세터를 사용해야될 경우에는 위 코드 처럼 임시변수를 사용해야한다.  
 (생성자 매개변수는 수정이 불가능하고 커스텀 게터, 세터 생성 시 컴파일 오류가 난다.)  
 
+<br>
 
 ## 2. 보조 생성자
 
@@ -127,7 +128,7 @@ class Player3(_name: String,
 보조 생성자에서는 클래스 속성 정의가 불가능하다.  
 클래스 속성은 기본 생성자나 클래스 몸체에 정의되어야 한다.
   
-
+<br>
 
 ## 3. 기본 인자
 
@@ -153,6 +154,8 @@ class Player3(_name: String,
 }
 ```
 
+<br>
+
 ## 4. 지명 인자
 
 지명 인자는 함수를 호출하기위한 인자에 이름을 지정하는 것이다.
@@ -171,73 +174,162 @@ fun main() {
 어떤 매개변수에 전달되는 값인지 알아보기 쉽다.   
 (특히 함수의 인자가 많을 경우 유용함.)
 
+<br>
 
-2장 처음 변수를 선언하는 방법으로 다음과 같이 설명했다.
+## 5. 초기화 블록
 
-
-var experiencePoints : Int = 5
-
-| var | experiencePoints | : Int | = | 5 |
-| :--- | :---: | :---: | :---: | :---: |
-| 변수 정의 키워드 | 변수 이름 | 타입 정의 | 대입 연산자 | 대입 값 |
-
-kotlin에서는 타입 추론이 있다.  
-처음 변수를 선언할 때, 초기값을 지정하는 경우에는 변수 타입을 생략할 수 있다.
-
-kotlin 컴파일러가 코드를 컴파일 할 때, 알아서 변수를 처리해준다. 책에서는 코드의 간결함을 위해 타입을 생략할 것을 추천한다.
-
-예시코드.
+kotlin에는 기본, 보조 생성자 뿐만 아니라 초기화 블록을 이용하여 인스턴스를 생성할 수 있다.  
+초기화 블록은 보통 매개변수 속성의 전제조건을 검사할 때 사용한다.
 
 ```kotlin
-fun main(args: Array<String>) {
-    var string = "string"
-    var char = 'c'
-    var boolean = true
-    var int = 5
-    var double = 5.5
-    var float = 5.5f
+class Player3(_name: String,
+              var healthPoints: Int,
+              val isBlessed: Boolean,
+              private val isImmotal: Boolean) {
+    var name = _name
+        get() = field.capitalize()
+        private set(value) {
+            field = value.trim()
+        }
+
+    init {
+        require(healthPoints > 0, {"healthPoints는 0보다 커야 합니다."})
+        require(name.isNotBlank(), {"플레이어는 이름이 있어야 합니다."})
+    }
+}
+``` 
+
+초기화 블록은 인스턴스가 생성될때마다 호출되며, 전제조건을 만족하지 못할 경우  
+IllegalArgumentException 이 발생한다.
+
+<br>
+
+## 6. 속성 초기화
+
+kotlin에서는 무조건 클래스의 속성은 초기화 되어야 한다.
+
+속성을 초기화하지 않을 경우 컴파일 에러가 발생한다.
+
+```kotlin
+class ~~ {
+ val hometown: String // 컴파일 에러 발생
 }
 ```
 
-## 5. 컴파일 시점 상수
-
-val 키워드는 한 번 값을 저장하면, 바꿀 수 없다고 소개되었지만, 특별한 경우 값을 변경할 수 있다고 한다.  
-그래서, 값을 절대 변경하지 못하게 하려면 "컴파일 시점 상수"를 고려해야 한다.
-
-"컴파일 시점 상수"는 main 함수 포함한 모든 함수의 외부에 정의되는 상수이다. kotlin 의 시작 지점인 main 함수를 포함한 모든 함수는 모두 런타임에 호출되고 실행되지만, "컴파일 시점 상수"는 말 그대로 컴파일 시점에 값이 초기화되므로 변경할 수 없다.
-
-컴파일 시점 상수는 컴파일 시점에 컴파일러가 알 수 있는 기본 타입이어야 한다.
-
-* String
-* Int
-* Double
-* Float
-* Long
-* Short
-* Byte
-* Char
-* Boolean
-
-예시코드.
+kotlin은 함수의 리턴값을 속성으로 초기화할 수 있다.
 
 ```kotlin
-const val MAX_EXPERIENCE: Int = 5000
-const val MAX_EXPERIENCE2 = 5000
+class Player3(_name: String,
+              var healthPoints: Int,
+              val isBlessed: Boolean,
+              private val isImmotal: Boolean) {
+    var name = _name
+        get() = "${field.capitalize()} of $hometown"
+        private set(value) {
+            field = value.trim()
+        }
 
-fun main(args: String<Array>) {
-    // ...
+    val hometown: String
+
+    private fun selectHometown() = File("data/towns.txt")
+                                    .readText()
+                                    .split("\r\n")
+                                    .shuffled()
+                                    .first()
 }
 ```
 
-## 6. 코틀린 바이트 코드
+kotlin의 클래스 속성을 무조건 초기화해야 하는것 과는 다르게 지역변수는 초기화되지 않아도 사용가능하다.  
+그 이유는 지역변수는 해당 함수 내부에서만 사용되지만,  
+클래스의 속성은 인스턴스가 생성되면 다른 클래스들에서 해당 인스턴스를 사용할 수 있기 때문에   
+다른 클래스에서 예외가 발생하기 때문이다.
 
-kotlin 프로그래밍 언어는 jvm에서 자바 바이트코드로 변환되어 실행된다.
+<br>
 
-kotlin 언어를 자바 바이트코드로 보는 방법은 1. intellij에서 shift 키를 두 번 누른다. 2. **Search Everywhere** 대화상자가 나오면 "show kotlin bytecode" 를 입력한다. 3. 코틀린 바이트코드 창이 보이면, 왼쪽 위에 있는 **Decompile** 버튼을 클릭한다.
+## 7. 초기화 순서
 
-## 7. 코틀린과 자바 기본 타입 비교
+(책 참고)
+앞에서 기본 생성자, 보조 생성자, 초기화 블록이라는 3가지 속성 초기화 방법을 확인했다.  
+속성 초기화의 순서는 기본 생성자 -> 클래스 내부에 지정된 속성 초기화 값 -> 초기화 블록 -> 보조 생성자 순이다.
 
-kotlin 프로그래밍 언어에서는 오로지, 참조 타입만을 지원하며 java의 기본 타입을 지원하지 않는다. 이유는, kotlin 프로그래밍 언어에서는 개발자가 기본 타입을 사용할지, 참조 타입을 사용할지 고민하지 않도록 오로지 참조 타입만을 지원한다. \(boxing, unboxing 관련 고민할 필요가 사라짐.\)
+<br>
 
-또한, kotlin 컴파일러는 최대한 좋은 성능을 제공하기 위해 참조 타입을 사용하더라도 가능한 한 기본 타입으로 바꿔서 사용한다.
+## 8. 초기화 지연시키기
 
+kotlin에서는 인스턴스 생성 시점에 바로 속성을 초기화해주는 생성자나 기본 타입 속성 지정이나 초기화블록이 없다면  
+컴파일 오류가 난다.  
+하지만, 개발을 할때 필수적으로 다른 클래스의 인스턴스를 참조해야 하는 경우 컴파일 타임에 초기화가 불가능하다.  
+
+java를 예로 들면 다음과 같다.
+```java
+public class A {
+    public A() {
+    }
+}
+
+public class B {
+    @Autowired
+    A a;
+}
+```
+
+B 클래스는 A 클래스의 메소드를 사용하기 위해 A 객체의 인스턴스를 Autowired 어노테이션으로 참조하고 있다.  
+하지만, Autowired는 런타임 시에 실행되어 객체를 할당한다.  
+  
+위와 같은 경우를 해결하기 위해 lateinit 키워드를 사용하여 초기화를 지연시킬 수 있다.    
+lateinit 키워드는 단지 초기화되지 않은 변수를 컴파일 오류가 나지 않도록 해주는 것일뿐이다. (또한 객체 참조만 가능)  
+
+예시코드  
+```kotlin
+class Wheel {
+    lateinit var aligment : String
+
+    fun initAligment() {
+        aligment = "Good"
+    }
+
+    fun printAligment() {
+        if (::aligment.isInitialized) println(aligment)
+    }
+}
+```
+
+isInitialized() 함수는 코틀린 표준 라이브러리에 있는 함수인데, 해당 참조변수가 초기화되었는지 확인할때 사용한다.    
+또한, 해당 함수에는 값이 아닌 참조를 전달해야 해서 :: 썼다. (참조를 전달할 때는 ::을 붙여야 되나 보다)
+
+lateinit 키워드를 사용할 경우, val는 사용 못하며 (final 이기 때문에 초기화 시점 이후에는 값 변경이 안됨.)  
+커스텀 게터, 세터 정의가 불가하다.
+
+> 참고  
+lateinit은 클래스 외부에서와 함수의 지역변수에서도 사용가능.
+
+<br>
+
+## 9. 늦 초기화
+
+kotlin에서 속성이 사용될 때 초기화하도록 할 수 있다.
+우리가 기본적으로 알고 있는 지연초기화이다.  
+
+```kotlin
+class Player3(_name: String,
+              var healthPoints: Int,
+              val isBlessed: Boolean,
+              private val isImmotal: Boolean) {
+    var name = _name
+        get() = "${field.capitalize()} of $hometown"
+        private set(value) {
+            field = value.trim()
+        } 
+    
+    val hometown by lazy { selectHometown() }
+
+    private fun selectHometown() = File("data/towns.txt")
+                                    .readText()
+                                    .split("\r\n")
+                                    .shuffled()
+                                    .first()
+}
+```
+
+getter에 $hometown이 호출될 때 초기화된다.
+초기화된 후 변경이 불가능하도록 val 키워드로 사용된다
