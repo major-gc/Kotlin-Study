@@ -5,9 +5,9 @@
 * [확장 함수 정의하기](chapter18.md#확장-함수-정의하기)
 * [슈퍼 클래스에 확장 함수 정의하기](chapter18.md#슈퍼-클래스에-확장-함수-정의하기)
 * [제네릭 확장 함수](chapter18.md#제네릭-확장-함수)
-* [지명 인자](chapter13.md#지명-인자)
-* [초기화 블록](chapter13.md#초기화-블록)
-* [속성 초기화](chapter13.md#속성-초기화)
+* [확장 속성](chapter18.md#확장-속성)
+* [null 가능 타입의 확장함수](chapter18.md#null-가능-타입의-확장함수)
+* [확장 함수의 바이트코드 구현](chapter18.md#확장-함수의-바이트코드-구현)
 * [초기화 순서](chapter13.md#초기화-순서)
 * [초기화 지연시키기](chapter13.md#초기화-지연시키기)
 
@@ -127,93 +127,72 @@ inline을 붙일 경우 객체를 새로 생성하는 것이 아니라 해당 �
 람다를 호출한 곳에 붙여넣기하여 사용한다고 한다.   
 <br>
 
-## 4. 지명 인자
+## 4. 확장 속성
 
-지명 인자는 함수를 호출하기위한 인자에 이름을 지정하는 것이다.
+함수 뿐만아니라 속성도 확장할 수 있다.
 
-예시코드
 ```kotlin
+val String.numVowels
+    get() = count {"aeiouy".contains(it)}
+    
 fun main() {
-    // 지명인자 사용
-    val player2 = Player3("Madrigal", healthPoints =100, isBlessed = true, isImmotal = false)
-    player2.castFireball()
-    printPlayerStatus2(player2)
+    "How many vowels?".numVowels.easyPrint()
 }
 ```
 
-지명인자를 사용할 경우 실제 매개변수의 위치가 달라도 자동으로 매핑해주고  
-어떤 매개변수에 전달되는 값인지 알아보기 쉽다.   
-(특히 함수의 인자가 많을 경우 유용함.)
+확장 속성은 산출 속성처럼 필드 값을 가지지 못하므로 반드시 get 메소드를 정의해야 한다.  
+(필드 값을 가지지 못하므로 setter 메소드와 var 키워드로 생성하지 못함)
 
 <br>
 
-## 5. 초기화 블록
+## 5. null 가능 타입의 확장함수
 
-kotlin에는 기본, 보조 생성자 뿐만 아니라 초기화 블록을 이용하여 인스턴스를 생성할 수 있다.  
-초기화 블록은 보통 매개변수 속성의 전제조건을 검사할 때 사용한다.
+확장함수에 null 인자를 받을 수 있도록 할 수 있다.
 
 ```kotlin
-class Player3(_name: String,
-              var healthPoints: Int,
-              val isBlessed: Boolean,
-              private val isImmotal: Boolean) {
-    var name = _name
-        get() = field.capitalize()
-        private set(value) {
-            field = value.trim()
-        }
+infix fun String?.printWithDefault(default: String) = print(this ?: default)
 
-    init {
-        require(healthPoints > 0, {"healthPoints는 0보다 커야 합니다."})
-        require(name.isNotBlank(), {"플레이어는 이름이 있어야 합니다."})
-    }
+fun main() {
+    val nullableString: String? = null
+    nullableString printWithDefault "기본 문자열"
 }
+```
+
+확장할 대상이 되는 String 수신자 타입 뒤에 ?를 붙여주고 사용하려는 값이 null 일 경우 사용할  
+default 값으로 사용할 인자를 넘겨주고 null 복합연산자에서 사용하면 된다.  
+
+infix 키워드는 확장 함수나 클래스 함수에 인자가 하나라면 사용할 수 있으며,  
+main() 메소드에서와 같이 .(수신자 객채) 이나 (괄호)를 사용하지 않고도 함수호출 할 수 있도록 해준다.  
+
+<br>
+
+## 6. 확장 함수의 바이트코드 구현
+
+확장 함수는 확장하려는 수신자 객체의 클래스에 직접 정의한 것이 아닌데 어떻게 구현되는지  
+바이트코드를 자바코드로 역컴파일한 코드를 보면 대충 이해할 수 있다.
+
+kotlin
+```kotlin
+fun String?.addEnthusiasm(amount: Int = 1) = (this?: "1") + "!".repeat(amount)
+```
+
+java 코드로 디컴파일
+```java
+   @NotNull
+   public static final String addEnthusiasm(@Nullable String $this$addEnthusiasm, int amount) {
+      StringBuilder var10000 = new StringBuilder();
+      String var10001 = $this$addEnthusiasm;
+      if ($this$addEnthusiasm == null) {
+         var10001 = "1";
+      }
+
+      return var10000.append(var10001).append(StringsKt.repeat((CharSequence)"!", amount)).toString();
+   }
 ``` 
 
-초기화 블록은 인스턴스가 생성될때마다 호출되며, 전제조건을 만족하지 못할 경우  
-IllegalArgumentException 이 발생한다.
-
-<br>
-
-## 6. 속성 초기화
-
-kotlin에서는 무조건 클래스의 속성은 초기화 되어야 한다.
-
-속성을 초기화하지 않을 경우 컴파일 에러가 발생한다.
-
-```kotlin
-class ~~ {
- val hometown: String // 컴파일 에러 발생
-}
-```
-
-kotlin은 함수의 리턴값을 속성으로 초기화할 수 있다.
-
-```kotlin
-class Player3(_name: String,
-              var healthPoints: Int,
-              val isBlessed: Boolean,
-              private val isImmotal: Boolean) {
-    var name = _name
-        get() = "${field.capitalize()} of $hometown"
-        private set(value) {
-            field = value.trim()
-        }
-
-    val hometown: String
-
-    private fun selectHometown() = File("data/towns.txt")
-                                    .readText()
-                                    .split("\r\n")
-                                    .shuffled()
-                                    .first()
-}
-```
-
-kotlin의 클래스 속성을 무조건 초기화해야 하는것 과는 다르게 지역변수는 초기화되지 않아도 사용가능하다.  
-그 이유는 지역변수는 해당 함수 내부에서만 사용되지만,  
-클래스의 속성은 인스턴스가 생성되면 다른 클래스들에서 해당 인스턴스를 사용할 수 있기 때문에   
-다른 클래스에서 예외가 발생하기 때문이다.
+addEnthusiasm() 메소드를 static으로 선언하고 첫번째 인자로 수신자 타입을 받는다.
+첫번째 인자로 받은 수신자 타입의 객체를 자바코드에서 코틀린에 addEnthusiasm() 메소드와 같은 기능을 하도록  
+변환 되어 있다.   
 
 <br>
 
