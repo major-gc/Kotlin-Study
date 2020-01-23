@@ -8,8 +8,9 @@
 * [확장 속성](chapter18.md#확장-속성)
 * [null 가능 타입의 확장함수](chapter18.md#null-가능-타입의-확장함수)
 * [확장 함수의 바이트코드 구현](chapter18.md#확장-함수의-바이트코드-구현)
-* [초기화 순서](chapter13.md#초기화-순서)
-* [초기화 지연시키기](chapter13.md#초기화-지연시키기)
+* [확장 함수로 추출하기](chapter18.md#확장-함수로-추출하기)
+* [확장 파일 정의하기](chapter18.md#확장-파일-정의하기)
+* [확장 함수 이름 변경하기](chapter18.md#확장-함수-이름-변경하기)
 
 ---
 
@@ -196,90 +197,81 @@ addEnthusiasm() 메소드를 static으로 선언하고 첫번째 인자로 수�
 
 <br>
 
-## 7. 초기화 순서
+## 7. 확장 함수로 추출하기
 
-(책 참고)
-앞에서 기본 생성자, 보조 생성자, 초기화 블록이라는 3가지 속성 초기화 방법을 확인했다.  
-속성 초기화의 순서는 기본 생성자 -> 클래스 내부에 지정된 속성 초기화 값 -> 초기화 블록 -> 보조 생성자 순이다.
+코드내 중복적으로 발생하는 코드는 확장함수로 정의하여 제거할 수 있다.
+
+기존 Tavern.kt 코드
+```kotlin
+(0..9).forEach {index ->
+        val first = patronList.shuffled().first()
+        val last = lastName.shuffled().first()
+        val name = "$first $last"
+        uniquePatrons += name
+    }
+``` 
+
+Tavern.kt 에는 shuffled().first() 라는 연쇄호출 함수를 여러번 사용되므로 확장 함수로 중복을 제거하여 사용할 수 있다.  
+
+```kotlin
+private fun <T> Iterable<T>.random() : T = this.shuffled().first()
+
+(0..9).forEach {index ->
+        val first = patronList.random()
+        val last = lastName.random()
+        val name = "$first $last"
+        uniquePatrons += name
+    }
+```  
+
+수신자 타입을 Iterable로 한 이유는 shuffled() 와 first() 메소드는 Set과 List 타입모두에 사용될 수 있으므로  
+두 타입의 슈퍼타입인 Iterable로 정의하였다.  
+
+> 참고
+List, Set은 Collection을 Collection은 Iterable을 슈퍼타입으로 정의되어 있다.    
 
 <br>
 
-## 8. 초기화 지연시키기
+## 8. 확장 파일 정의하기
 
-kotlin에서는 인스턴스 생성 시점에 바로 속성을 초기화해주는 생성자나 기본 타입 속성 지정이나 초기화블록이 없다면  
-컴파일 오류가 난다.  
-하지만, 개발을 할때 필수적으로 다른 클래스의 인스턴스를 참조해야 하는 경우 컴파일 타임에 초기화가 불가능하다.  
+예시코드에서 random() 함수는 private으로 정의되어 있다.  
 
-java를 예로 들면 다음과 같다.
-```java
-public class A {
-    public A() {
-    }
-}
-
-public class B {
-    @Autowired
-    A a;
-}
-```
-
-B 클래스는 A 클래스의 메소드를 사용하기 위해 A 객체의 인스턴스를 Autowired 어노테이션으로 참조하고 있다.  
-하지만, Autowired는 런타임 시에 실행되어 객체를 할당한다.  
-  
-위와 같은 경우를 해결하기 위해 lateinit 키워드를 사용하여 초기화를 지연시킬 수 있다.    
-lateinit 키워드는 단지 초기화되지 않은 변수를 컴파일 오류가 나지 않도록 해주는 것일뿐이다. (또한 객체 참조만 가능)  
-
-예시코드  
 ```kotlin
-class Wheel {
-    lateinit var aligment : String
+private fun <T> Iterable<T>.random() : T = this.shuffled().first()
 
-    fun initAligment() {
-        aligment = "Good"
+(0..9).forEach {index ->
+        val first = patronList.random()
+        val last = lastName.random()
+        val name = "$first $last"
+        uniquePatrons += name
     }
+```  
 
-    fun printAligment() {
-        if (::aligment.isInitialized) println(aligment)
-    }
-}
-```
+그래서 다른 파일에서는 random() 함수를 사용할 수 없으므로,  
+보통 코틀린에서는 확장함수나 확장속성은 별도 패키지로 관리한다고 한다.  
 
-isInitialized() 함수는 코틀린 표준 라이브러리에 있는 함수인데, 해당 참조변수가 초기화되었는지 확인할때 사용한다.    
-또한, 해당 함수에는 값이 아닌 참조를 전달해야 해서 :: 썼다. (참조를 전달할 때는 ::을 붙여야 되나 보다)
+패키지 이름은 관례상 extensions로  
+파일이름은 "수신자 타입 + Ext" 로 만든다
 
-lateinit 키워드를 사용할 경우, val는 사용 못하며 (final 이기 때문에 초기화 시점 이후에는 값 변경이 안됨.)  
-커스텀 게터, 세터 정의가 불가하다.
-
-> 참고  
-lateinit은 클래스 외부에서와 함수의 지역변수에서도 사용가능.
+(ex. IterableExt.kt)   
 
 <br>
 
-## 9. 늦 초기화
+## 9. 확장 함수 이름 변경하기
 
-kotlin에서 속성이 사용될 때 초기화하도록 할 수 있다.
-우리가 기본적으로 알고 있는 지연초기화이다.  
+코틀린에서는 서로 다른 패키지에 있는 동일한 이름의 클래스, 인터페이스, 함수들을 사용할 때  
+as 키워드를 사용하여 이름 충돌이 생기지 않도록 한다.  
+
+확장 함수도 똑같이 사용가능하다.  
 
 ```kotlin
-class Player3(_name: String,
-              var healthPoints: Int,
-              val isBlessed: Boolean,
-              private val isImmotal: Boolean) {
-    var name = _name
-        get() = "${field.capitalize()} of $hometown"
-        private set(value) {
-            field = value.trim()
-        } 
-    
-    val hometown by lazy { selectHometown() }
+import extensions.random as randomizer
 
-    private fun selectHometown() = File("data/towns.txt")
+class Player {
+   private fun selectHometown() = File("data/towns.txt")
                                     .readText()
                                     .split("\r\n")
-                                    .shuffled()
-                                    .first()
+                                    .randomizer()
 }
-```
 
-getter에 $hometown이 호출될 때 초기화된다.
-초기화된 후 변경이 불가능하도록 val 키워드로 사용된다
+```
