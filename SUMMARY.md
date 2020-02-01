@@ -8,4 +8,5 @@
 * [7. 문자열](chapter7.md)
 * [9. 표준 함수](chapter9.md)
 * [14. 상속](chapter14.md)
+* [18. 확장](chapter18.md)
 
